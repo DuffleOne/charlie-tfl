@@ -4,7 +4,7 @@ import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 HOST_NAME = '0.0.0.0'
-PORT_NUMBER = 9000
+PORT_NUMBER = 8000
 
 def generator():
         trains = []
