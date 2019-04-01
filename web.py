@@ -2,36 +2,44 @@ import time
 import requests
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 
-def generator():
+
+# https://tfl.cha.rles.tech/940GZZLUWPL/district/inbound/3
+# Whitechapel ID: 940GZZLUWPL
+# 
+
+
+def generator(url):
+        stopID = url[0]
+        lineID = url[1]
+        direction = url[2]
+        numTrains = int(url[3])
         trains = []
         sortedTrains = []
+        response = []
         #text = '["Trains"'
-        r = requests.get('https://api.tfl.gov.uk/StopPoint/940GZZLUWPL/Arrivals')
-        #print(len(r.json()))
+        r = requests.get('https://api.tfl.gov.uk/StopPoint/{}/Arrivals'.format(stopID))
+        print(numTrains)
         for i in range(len(r.json())):
             train = r.json()[i]
             #print(train)
             try:
-                if(train["direction"] == "inbound"):
-                    dict = {
-                        "destination": train["destinationName"],
-                        "timeToStation": train["timeToStation"]}
+                if(train["lineId"] == lineID):
+                        if(train["direction"] == direction):
+                                dict = {
+                                "destination": train["destinationName"],
+                                "timeToStation": train["timeToStation"]}
                     #print(dict)
-                    trains.append(dict)
+                                trains.append(dict)
 
             except KeyError:
                 pass
 
-        sortedTrains = sorted(trains[:3], key=lambda k: k['timeToStation'])
-        #sortedTrains.insert(0, text)
-        #print(sortedTrains)
-        #b = bytearray()
-        #b.extend(map(ord, json.dumps(sortedTrains)))
-        #print(json.dumps(sortedTrains).encode())
+        sortedTrains = sorted(trains[:numTrains], key=lambda k: k['timeToStation'])        
         return(sortedTrains)
 
 class MyHandler(BaseHTTPRequestHandler):
@@ -43,8 +51,14 @@ class MyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(json.dumps(generator()).encode())
-        return
+        url = str(urlparse(self.path).path)
+        url = (url[:0] + url[(1):]).split("/")
+        if(len(url))==4:
+                self.wfile.write(json.dumps(generator(url)).encode())
+                return
+        else:
+                self.wfile.write(json.dumps('[{"Bad Request":1}]').encode())
+                return
 
     def handle_http(self, status_code):
         self.send_response(status_code)
